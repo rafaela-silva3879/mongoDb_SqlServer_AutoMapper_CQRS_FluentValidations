@@ -1,0 +1,124 @@
+﻿@model DeveloperStore.Presentation.Models.WelcomeViewModel
+@{
+    ViewData["Title"] = "Cadastrar Livro";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h5 class="text-center mb-3">Product Registration</h5>
+
+<!-- Div Success -->
+<div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+    <strong>Sucesso!</strong><br /> <label id="successMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+</div>
+
+<!-- Div Error -->
+<div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+    <strong>Erro!</strong><br /> <label id="errorMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+</div>
+
+<form id="form" method="post">
+
+    <input type="hidden" id="hdnLoginToken" value="@Model.LoginToken" />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input id="txtName" required minlength="3" maxlength="100" name="Name" type="text"
+               class="form-control bg-light text-dark border-light" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input id="txtQuantity" required minlength="1" maxlength="15" name="Quantity" type="text"
+               class="form-control bg-light text-dark border-light" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Unit Price</label>
+        <input id="txtUnitPrice" required minlength="4" maxlength="13" name="UnitPrice" type="text"
+               class="form-control bg-light text-dark border-light" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Photo</label>
+        <input id="txtPhotoJPGJPEG" required name="PhotoJPGJPEG" type="file"
+               class="form-control bg-light text-dark border-light" />
+    </div>
+
+    <div class="d-grid">
+        <input id="btnSubmit" type="submit" value="Cadastrar" class="btn btn-primary">
+        <a href="/Product/RegisteredProducts" class="text-decoration-none">Back to Products</a>
+    </div>
+
+
+</form>
+
+<script>
+    $(document).ready(function () {
+        $("#divError").hide();
+        $("#divSuccess").hide();
+
+        $("#form").submit(function (event) {
+        event.preventDefault();
+
+            var formData = new FormData();
+            formData.append("UserId", "@Model.Id");
+            formData.append("Name", $("#txtName").val());
+            formData.append("Quantity", $("#txtQuantity").val());
+            formData.append("UnitPrice", $("#txtUnitPrice").val());
+            var fileInput = $("#txtPhotoJPGJPEG")[0].files[0];
+            if (fileInput) {
+                formData.append("PhotoJPGJPEG", fileInput); // Adds file to FormData
+            }
+
+            var token = $("#hdnLoginToken").val();
+
+            fetch('https://localhost:7211/Product/ProductRegistration', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token  // Add token JWT to headers
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(response); // If not ok
+                }
+                var contentType = response.headers.get("content-type");
+               
+                if (contentType && contentType.includes("application/json")) {
+                    return response.json();
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                $("#divError").hide();
+
+                if (typeof data === "String") {
+                 
+                    $("#divSuccess").show();
+                    $("#successMsg").html(data);
+                    $("#txtName, #txtUnitPrice").val('');
+                    $("#txtPhotoJPGJPEG").val(null);
+                } else if (data.errorStr) {
+                   
+                    $("#errorMsg").html(data.errorStr);
+                    $("#divError").show();
+                } else {
+                 
+                    $("#divSuccess").show();
+                    $("#successMsg").html("Product registered with success!");
+                  
+                    $("#txtName, #txtUnitPrice, #txtQuantity").val('');
+                    $("#txtPhotoJPGJPEG").val(null); // Limpa o campo de arquivo
+                }
+            })
+            .catch(error => {
+                $("#errorMsg").html("ERRO! " + error);
+                $("#divError").show();
+            });
+        });
+    });
+</script>

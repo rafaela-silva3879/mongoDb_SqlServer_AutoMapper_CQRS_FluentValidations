@@ -1,0 +1,390 @@
+﻿@model DeveloperStore.Presentation.Models.WelcomeViewModel
+@{
+    ViewData["Title"] = "Products";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<p>User: @Model.Name</p>
+
+<h1>Welcome to Developer Store!</h1>
+
+
+<!-- Div Success -->
+<div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+    <strong>Success!</strong><br /> <label id="successMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+</div>
+
+<!-- Div Error -->
+<div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+    <strong>Error!</strong><br /> <label id="errorMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+</div>
+
+@if (@Model.UserProfile == "1")
+{
+    <a href="@Url.Action("ProductRegistration", "Product")" class="btn btn-outline-success mb-3" style="width: 100%;">Add New Product</a>
+    <a href="@Url.Action("Users", "User")" class="btn btn-outline-success mb-3" style="width: 100%;">Users list</a>
+}
+
+
+<form id="form" method="post">
+    <input type="hidden" value="@Model.LoginToken" id="hdnLoginToken" />
+    <h5 class="text-center mb-3">These are our products</h5>
+
+    <div id="divPageItemsPerPageOrderBy">
+        <label for="pageSelect">Page:</label>
+        <select id="pageSelect" class="form-select" style="width: auto; display: inline-block;"></select>
+
+        <label for="sizeInput">Items per page:</label>
+        <input type="number" id="sizeInput" class="form-control" style="width: 80px; display: inline-block;" min="1" value="3">
+
+        <label for="orderSelect">Order by:</label>
+        <select id="orderSelect" class="form-select" style="width: auto; display: inline-block;">
+            <option value="name asc">Name Asc</option>
+            <option value="name desc">Name Desc</option>
+            <option value="price asc">Price Asc</option>
+            <option value="price desc">Price Desc</option>
+        </select>
+    </div>
+
+    <div id="productList" class="row mt-3"></div>
+
+    <div class="d-flex justify-content-center mt-3 pagination-container">
+        <button id="btnPrevious" class="btn btn-primary me-2">Previous</button>
+        <button id="btnNext" class="btn btn-primary">Next</button>
+    </div>
+    <div class="text-center mt-4">
+        <button id="btnCalculate" class="btn btn-outline-info">Calculate total per items</button>
+        <input type="submit" class="submit-button btn btn-outline-warning" value="Buy" />
+    </div>
+
+</form>
+<script>
+        $(document).ready(function () {
+            let currentPage = 1;
+            let pageSize = parseInt($("#sizeInput").val(), 10);
+            let orderBy = "name asc";
+            let userProfile = "@Model.UserProfile";
+            let userId = "@Model.Id";
+
+        $("form").submit(function (e) {
+        e.preventDefault();
+
+        let storedProducts = getStoredProducts();
+
+        if (storedProducts.length === 0) {
+            //Show an error message if no items are in sessionStorage
+            $("#errorMsg").html("You must add at least one product to your cart before submitting.");
+            $("#divError").show();
+            return;
+        }
+
+        let selections = storedProducts.map(product => ({
+            UserId: userId,
+            ProductId: product.productId,
+            Quantity: product.quantity
+        }));
+        console.log(selections);
+        $("#divError").hide();
+        $("#divSuccess").hide();
+        $.ajax({
+            url: '/Product/SubmitSelection',
+            type: 'POST',
+            headers: { 'Authorization': 'Bearer ' + $('#hdnLoginToken').val() },
+            contentType: 'application/json',
+            data: JSON.stringify(selections),
+            success: function (response) {
+                if (response.errorStr) {
+                    $("#errorMsg").html(response.errorStr);
+                    $("#divError").show();
+                } else {
+                    console.log(response);
+                    $("#divSuccess").show();
+                    $("#successMsg").html(response);
+
+                    // clean sessionStorage
+                    sessionStorage.removeItem("selectedProducts");
+
+                    // Update page
+                    loadProducts(currentPage);
+
+                    // Clean as checkboxes and selects
+                    $(".quantity-input").val("");
+                    $(".product-checkbox").prop("checked", false);
+                }
+            },
+            error: function (xhr) {
+                console.error("Erro AJAX:", xhr);
+                $("#errorMsg").html(xhr.responseText || "Erro desconhecido.");
+                $("#divError").show();
+            }
+        });
+    });
+
+
+        $("#btnCalculate").on("click", function (e) {
+        e.preventDefault();
+        $("#divError").hide();
+        $("#divSuccess").hide();
+        let selections = getStoredProducts().map(product => ({
+            UserId: userId,
+            ProductId: product.productId,
+            Quantity: product.quantity
+        }));
+        console.log(selections);
+           if (selections.length === 0) {
+            // Show an error message if no items are in sessionStorage
+            $("#errorMsg").html("You must mark at least one product before calculate the price.");
+            $("#divError").show();
+            return;
+        }
+    $.ajax({
+        url: '/Product/CalculateTotalAmount',
+        type: 'POST',
+        headers: { 'Authorization': 'Bearer ' + $('#hdnLoginToken').val() },
+        contentType: 'application/json',
+        data: JSON.stringify(selections),
+     success: function (response) {
+           if (response.errorStr) {
+                    $("#errorMsg").html(response.errorStr);
+                    $("#divError").show();  // Mostra a div de erro na página
+                } else {
+                                    
+        const formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD"
+    });
+        let successMsgHtml = "<ul>";
+
+        response.response.saleItemsList.forEach(item => {
+            successMsgHtml += `<li><strong>${item.productName}</strong></li>`;
+            successMsgHtml += `<li>Quantity: ${item.quantity}</li>`;
+            successMsgHtml += `<li>Discount: ${formatter.format(item.discount)}</li>`;
+            successMsgHtml += `<li>Total item amount: ${formatter.format(item.totalItemAmount)}</li>`;
+            successMsgHtml += `<br/>`;
+        });
+
+        successMsgHtml += "</ul>";
+
+        if (response.response.purchaseTotalAmount !== undefined) {
+        successMsgHtml += `<strong>Purchase Total Amount: ${formatter.format(response.response.purchaseTotalAmount)}</strong>`;
+        } else {
+            console.error("PurchaseTotalAmount not found");
+        }
+
+        $("#successMsg").html(successMsgHtml); 
+        $("#divSuccess").show();
+        }
+    },
+
+        error: function (xhr) {
+            console.error("Erro AJAX:", xhr);
+            $("#errorMsg").html(xhr.responseText || "Erro desconhecido.");
+            $("#divError").show();
+        }
+    });
+
+    });
+            function getStoredProducts() {
+                let stored = sessionStorage.getItem("selectedProducts");
+                return stored ? JSON.parse(stored) : [];
+            }
+
+            function saveStoredProducts(products) {
+                sessionStorage.setItem("selectedProducts", JSON.stringify(products));
+            }
+
+            function updateProductInStorage(productId, quantity, checked) {
+                let storedProducts = getStoredProducts();
+                let productIndex = storedProducts.findIndex(p => p.productId === productId);
+
+                if (checked) {
+                    if (productIndex === -1) {
+                        storedProducts.push({ productId, quantity });
+                    } else {
+                        storedProducts[productIndex].quantity = quantity;
+                    }
+                } else {
+                    storedProducts = storedProducts.filter(p => p.productId !== productId);
+                }
+
+                saveStoredProducts(storedProducts);
+            }
+
+
+
+            $(document).on("change", ".quantity-input", function () {
+                let productId = $(this).data("product-id");
+                let newQuantity = $(this).val();
+                let isChecked = $(`#productCheck${productId}`).is(":checked");
+                updateProductInStorage(productId, newQuantity, isChecked);
+            });
+
+            $(document).on("change", ".product-checkbox", function () {
+                let productId = $(this).data("product-id");
+                let quantity = $(`#quantityInput${productId}`).val();
+                let isChecked = $(this).is(":checked");
+                updateProductInStorage(productId, quantity, isChecked);
+            });
+
+            function loadProducts(page) {
+                let token = $("#hdnLoginToken").val();
+                pageSize = $("#sizeInput").val();
+                orderBy = $("#orderSelect").val();
+
+                fetch(`https://localhost:7211/Product/GetAllProductsAsync?_page=${page}&_size=${pageSize}&_order=${orderBy}`, {
+                    method: 'GET',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    var products = data.products;
+                    var pagination = data.pagination;
+                    var productListHtml = '';
+
+                    if (products.length > 0) {
+                        if (products.length > 1) {
+                            $("#divPageItemsPerPageOrderBy").show();
+                        }
+
+                        products.forEach(product => {
+                            var photoUrl = 'https://localhost:7211' + product.photoPath;
+
+                                    var quantityOptions = '';
+                         
+                         for (var i = 1; i <= product.quantity; i++) {
+                             quantityOptions += `<option value="${i}" ${i === 1 ? 'selected' : ''}>${i}</option>`;
+                         }
+
+                            productListHtml += `
+                                <div class="col-md-4 col-sm-6 col-12 mb-3">
+                                    <div class="card">
+                                        <img src="${photoUrl}" class="card-img-top img-thumbnail" style="width: 100%; height: 200px;">
+                                        <div class="card-body">
+                                            <h5 class="card-title">${product.name}</h5>
+                                            <p class="card-text">Price: $${product.unitPrice}</p>
+                                            <label for="quantityInput${product.id}">Quantity:</label>
+
+
+                                                <label for="quantityInput${product.id}">Quantity:</label>
+                                            <select id="quantityInput${product.id}" class="form-control quantity-input" data-product-id="${product.id}" style="width: 80px;">
+                                                ${quantityOptions} <!-- Aqui as opções de quantidade serão geradas -->
+                                            </select>
+
+                                            <div class="form-check">
+                                                <input class="form-check-input product-checkbox" type="checkbox"
+                                                    id="productCheck${product.id}" data-product-id="${product.id}">
+                                                <label class="form-check-label" for="productCheck${product.id}">
+                                                    Add to my cart
+                                                </label>
+                                            </div>
+                                            <p>Price per unit: $${product.unitPrice}</p>
+                                            ${userProfile == "1" ? `<a href="/Product/Edit?id=${product.id}" class="btn btn-info">Edit</a>` : ""}
+                                            ${userProfile == "1" ? `<button class="btn btn-danger ms-2 btn-delete"
+                                                data-id="${product.id}" data-name="${product.name}">Delete</button>` : ""}
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                        $("#productList").html(productListHtml);
+                        updatePagination(pagination);
+                    } else {
+                        $("#productList").html('<p>No products found.</p>');
+                        $(".pagination-container").hide();
+                    }
+
+                    restoreSelections();
+                });
+            }
+
+            function restoreSelections() {
+                let storedProducts = getStoredProducts();
+
+                storedProducts.forEach(product => {
+                    let checkbox = $(`#productCheck${product.productId}`);
+                    let quantityInput = $(`#quantityInput${product.productId}`);
+
+                    if (checkbox.length > 0) {
+                        checkbox.prop("checked", true);
+                    }
+                    if (quantityInput.length > 0) {
+                        quantityInput.val(product.quantity);
+                    }
+                });
+            }
+
+            function updatePagination(pagination) {
+                $("#pageSelect").empty();
+                for (let i = 1; i <= pagination.totalPages; i++) {
+                    $("#pageSelect").append(`<option value="${i}" ${i === pagination.currentPage ? 'selected' : ''}>${i}</option>`);
+                }
+
+                $("#btnPrevious").toggle(pagination.hasPreviousPage);
+                $("#btnNext").toggle(pagination.hasNextPage);
+
+                $(".pagination-container").toggle(pagination.hasPreviousPage || pagination.hasNextPage);
+            }
+
+            $("#pageSelect").change(function () {
+                currentPage = $(this).val();
+                loadProducts(currentPage);
+            });
+
+            $("#sizeInput, #orderSelect").change(function () {
+                pageSize = parseInt($("#sizeInput").val(), 10);
+                currentPage = 1;
+                loadProducts(currentPage);
+            });
+
+            $("#btnPrevious").click(function () {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadProducts(currentPage);
+                }
+            });
+
+            $("#btnNext").click(function () {
+                currentPage++;
+                loadProducts(currentPage);
+            });
+
+            loadProducts(currentPage);
+
+            $(document).on("click", ".btn-delete", function (e) {
+            e.preventDefault();
+            let productId = $(this).data("id");
+            let name = $(this).data("name");
+            $("#divError").hide();
+            $("#divSuccess").hide();
+            if (confirm("Confirm the deletion of the product " + name + "?")) {
+                $.ajax({
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    url: '/Product/Delete',
+                    type: 'POST',
+                    data: JSON.stringify({ ProductId: productId }),
+                    contentType: 'application/json',
+                    success: function (response) {
+                        if (response.success) {
+                           alert("Product " + name + " deleted successfully!");
+                                  loadProducts(currentPage);
+                        } else {
+                            $("#errorMsg").html(response.errorStr);
+                            $("#divError").show();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        $("#errorMsg").html("Error deleting product: " + error);
+                        $("#divError").show();
+                    }
+                });
+            }
+        });
+
+
+        });
+</script>
+
+

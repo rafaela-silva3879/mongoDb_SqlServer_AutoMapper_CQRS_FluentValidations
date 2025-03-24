@@ -1,0 +1,109 @@
+﻿@model DeveloperStore.Presentation.Models.EditProductViewModel
+@{
+    ViewData["Title"] = "Edit Product";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h5 class="text-center mb-3">Edit Product</h5>
+
+<!-- Div Success -->
+<div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+    <strong>Success!</strong><br /> <label id="successMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+</div>
+
+<!-- Div Error -->
+<div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+    <strong>Error!</strong><br /> <label id="errorMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+</div>
+
+<form id="form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="hdnId" value="@Model.Id" />
+    <input type="hidden" name="hdnUserId" value="@Model.UserId" />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input id="txtName" name="Name" type="text" class="form-control bg-light text-dark border-light"
+               required minlength="3" maxlength="100" value="@Model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Quantity</label>
+        <input id="txtQuantity" name="Quantity" type="text" class="form-control bg-light text-dark border-light"
+               required minlength="1" maxlength="15" value="@Model.Quantity" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Unit Price</label>
+        <input id="txtUnitPrice" name="UnitPrice" type="text" class="form-control bg-light text-dark border-light"
+               required minlength="4" maxlength="13" value="@Model.UnitPrice" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Photo</label>
+        <input id="txtPhotoJPGJPEG" name="PhotoJPGJPEG" type="file" class="form-control bg-light text-dark border-light" />
+
+        @if (!string.IsNullOrEmpty(Model.Photo))
+        {
+            <div id="imagePreview">
+                <img id="imgPreview" src="https://localhost:7211/Uploads/@Model.Photo" class="card-img-top img-thumbnail" style="width: 150px; height: 150px; object-fit: cover; margin-bottom: 0.5cm; margin-top: 0.5cm;">
+            </div>
+
+        }
+    </div>
+
+    <div class="d-grid">
+        <input id="btnSubmit" type="submit" value="Update Product" class="btn btn-primary">
+        <a href="/Product/RegisteredProducts" class="text-decoration-none">Back to Products</a>
+    </div>
+</form>
+
+<script>
+    $(document).ready(function () {
+     
+        $("#form").submit(function (e) {
+            e.preventDefault();
+
+            var formData = new FormData();
+            formData.append("Id", $("input[name='hdnId']").val());
+            formData.append("Name", $("#txtName").val());
+            formData.append("UnitPrice", $("#txtUnitPrice").val());
+            formData.append("Quantity", $("#txtQuantity").val());
+           formData.append("UserId", $("input[name='hdnUserId']").val());
+
+            var fileInput = $("#txtPhotoJPGJPEG")[0].files[0];
+            if (fileInput) {
+                formData.append("PhotoJPGJPEG", fileInput); 
+            } else {
+                formData.append("Photo", "@Model.Photo");
+            }
+
+            fetch('https://localhost:7211/Product/Edit', {
+                method: 'POST',          
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.errorStr) {
+                    $("#errorMsg").html(data.errorStr);
+                    $("#divError").show();
+                } else {
+                    $("#divSuccess").show();
+                    $("#successMsg").html(data);
+                    $("#txtName, #txtUnitPrice, #txtQuantity , #txtId").val(''); // Limpa os campos de nome e preço
+                    $("#txtPhotoJPGJPEG").val('');
+                    $('#imgPreview').hide();
+                }
+            })
+            .catch(error => {
+                $("#errorMsg").html(error);
+                $("#divError").show();
+            });
+        });
+    });
+</script>
+
+
+
+      

@@ -1,0 +1,96 @@
+﻿@model DeveloperStore.Presentation.Models.EditUserViewModel
+@{
+    ViewData["Title"] = "Edit Product";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h5 class="text-center mb-3">Edit User</h5>
+
+<!-- Div Success -->
+<div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+    <strong>Success!</strong><br /> <label id="successMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+</div>
+
+<!-- Div Error -->
+<div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+    <strong>Error!</strong><br /> <label id="errorMsg"></label>
+    <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+</div>
+
+<form id="form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="hdnId" value="@Model.Id" />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input id="txtName" name="Name" type="text" class="form-control bg-light text-dark border-light"
+               required minlength="3" maxlength="100" value="@Model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">E-mail</label>
+        <input id="txtEmail" name="Name" type="text" class="form-control bg-light text-dark border-light"
+               required minlength="3" maxlength="100" value="@Model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">User Profile</label>
+        <select id="UserProfile" name="UserProfile" class="form-control bg-light text-dark border-light" required>
+            <option value="0" @(Model.UserProfile == "0" ? "selected" : "")>User</option>
+            <option value="1" @(Model.UserProfile == "1" ? "selected" : "")>Admin</option>
+        </select>
+    </div>
+    <div class="d-grid">
+        <input id="btnSubmit" type="submit" value="Update User" class="btn btn-primary">
+        <a href="/User/Users" class="text-decoration-none">Back to Users</a>
+    </div>
+</form>
+
+<script>
+    $(document).ready(function () {
+
+        // Form submission
+        $("#form").submit(function (e) {
+            e.preventDefault();
+
+           
+        let userModel = {
+            Id: $("input[name='hdnId']").val(),
+            Name: $("#txtName").val(),
+            Email: $("#txtEmail").val(),
+            UserProfile: $("#UserProfile").val()
+        };
+
+        $("#divError").hide();
+        $("#divSuccess").hide();
+        $.ajax({
+            url: '/User/Edit',
+            type: 'POST',           
+            contentType: 'application/json',
+            data: JSON.stringify(userModel),
+            success: function (response) {
+                if (response.errorStr) {
+                    $("#errorMsg").html(response.errorStr);
+                    $("#divError").show();
+                } else {
+                    console.log(response);
+                    $("#divSuccess").show();
+                    $("#successMsg").html(response);
+                        $("#txtName, #txtEmail, #txtUserProfile,input[name='hdnId']").val('');
+                }
+            },
+            error: function (xhr) {
+                console.error("Erro AJAX:", xhr);
+                $("#errorMsg").html(xhr.responseText || "Erro desconhecido.");
+                $("#divError").show();
+            }
+        });
+    });
+
+
+});
+
+</script>
+
+
+

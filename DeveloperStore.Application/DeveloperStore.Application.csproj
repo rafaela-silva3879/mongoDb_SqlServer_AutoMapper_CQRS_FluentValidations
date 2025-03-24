@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="RequestHandlers\**" />
+    <EmbeddedResource Remove="RequestHandlers\**" />
+    <None Remove="RequestHandlers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.0" />
+    <PackageReference Include="MongoDB.Driver" Version="3.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DeveloperStore.Domain\DeveloperStore.Domain.csproj" />
+    <ProjectReference Include="..\DeveloperStore.Infra.Data.MongoDB\DeveloperStore.Infra.Data.MongoDB.csproj" />
+    <ProjectReference Include="..\DeveloperStore.Infra.Data\DeveloperStore.Infra.Data.csproj" />
+  </ItemGroup>
+
+</Project>

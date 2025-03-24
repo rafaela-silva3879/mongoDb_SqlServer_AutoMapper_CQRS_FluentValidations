@@ -1,0 +1,104 @@
+﻿@model DeveloperStore.Presentation.Models.CancelSaleViewModel
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cancel Sale</title>
+
+    <!-- Bootstrap 5.3.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body class="bg-dark text-white">
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="card bg-dark text-white shadow-lg p-4" style="width: 100%; max-width: 400px;">
+            <h5 class="text-center mb-3">Cancel Purchase</h5>
+
+            <!-- Div Success -->
+            <div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+                <strong>Success!</strong><br /> <label id="successMsg"></label>
+                <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+            </div>
+
+            <!-- div Error -->
+            <div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+                <strong>Error!</strong><br /> <label id="errorMsg"></label>
+                <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+            </div>
+
+            <form id="form" method="post">
+                <div class="mb-3">
+                    <input type="hidden" id="hdnSaleId" value="@Model.SaleId" />
+
+                    <div class="form-check">
+                        <input id="chkcancel" name="Cancel" type="checkbox" class="form-check-input" />
+                        <label for="chkcancel" class="form-check-label">Are you sure you wish to cancel your purchase?</label>
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <input id="btnSubmit" type="submit" value="Cancel" class="btn btn-primary">
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    $(document).ready(function () {
+
+        $("#divError").hide();
+        $("#divSuccess").hide();
+
+        $("#form").submit(function (e) {
+            e.preventDefault();
+
+            // Verify if there is a checkbox checked
+            if (!$("#chkcancel").prop("checked")) {
+                $("#errorMsg").html("You must confirm the cancellation by checking the box.");
+                $("#divError").show();
+                return;
+            }
+
+            $("#btnSubmit").prop("disabled", true);
+
+            var cancellingModel = {
+                SaleId: $("#hdnSaleId").val(),
+                Cancel: true // Como a checkbox está marcada, o valor é true
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/Sale/CancelSale",
+                data: cancellingModel,
+                dataType: "json",
+                success: function (response) {
+                    $("#divError").hide();
+                    console.log('response', response);
+
+                    if (response.errorStr) {
+                        $("#errorMsg").html(response.errorStr);
+                        $("#divError").show();  // Mostra a div de erro na página
+                    } else {
+                        $("#divSuccess").show();
+                        $("#successMsg").html(response);
+                    }
+
+                    $("#btnSubmit").prop("disabled", false);
+                },
+                error: function (xhr) {
+                   
+                    $("#errorMsg").html(xhr.responseText);
+                    $("#divError").show();
+
+                    $("#btnSubmit").prop("disabled", false);
+                }
+            });
+        });
+    });
+</script>

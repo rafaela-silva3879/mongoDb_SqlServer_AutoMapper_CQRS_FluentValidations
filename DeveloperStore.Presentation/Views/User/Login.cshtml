@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login</title>
+
+    <!-- Bootstrap 5.3.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+
+<body class="bg-dark text-white">
+    <div class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="card bg-dark text-white shadow-lg p-4" style="width: 100%; max-width: 400px;">
+            <h5 class="text-center mb-3">Login</h5>
+
+            <!-- Div Success -->
+            <div class="alert alert-success alert-dismissible fade show" id="divSuccess" role="alert" style="display:none;">
+                <strong>Success!</strong><br /> <label id="successMsg"></label>
+                <button type="button" class="btn-close" aria-label="Close" onclick="$('#divSuccess').hide();"></button>
+            </div>
+
+            <!-- div Error -->
+            <div class="alert alert-danger alert-dismissible fade show" id="divError" role="alert" style="display:none;">
+                <strong>Error!</strong><br /> <label id="errorMsg"></label>
+                <button type="button" class="btn-close" aria-label="Close" onclick="$('#divError').hide();"></button>
+            </div>
+
+            <form id="form" method="post">
+                <div class="mb-3">
+                    <label class="form-label">E-mail</label>
+                    <input id="txtEmail" required minlength="6" maxlength="50" name="Email" type="text"
+                           class="form-control bg-dark text-white border-light" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input id="txtPassword" required minlength="8" maxlength="50" name="Password" type="password"
+                           class="form-control bg-dark text-white border-light" />
+                </div>
+
+                <div class="d-grid">
+                    <input id="btnSubmit" type="submit" value="Login" class="btn btn-primary">
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="/User/CreateAccount" class="text-white text-decoration-none">Create Account</a> |
+                    <a href="/User/PasswordForgotten" class="text-white text-decoration-none">I Forgot My Password</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+<script>
+    $(document).ready(function () {
+                
+        $("#divError").hide();
+        $("#divSuccess").hide();
+
+            $("#form").submit(function (e) {
+            e.preventDefault();
+            var LoginModel = {
+                Email: $("#txtEmail").val(),
+                Password: $("#txtPassword").val(),
+            };
+
+            $.ajax({
+                type: "POST",
+                url: "/User/Login",
+                data: LoginModel,
+                dataType: "json",
+                success: function (response) {
+                    $("#divError").hide();
+                  
+                    if (response.errorStr) {
+                        $("#errorMsg").html(response.errorStr);
+                        $("#divError").show();  // Mostra a div de erro na página
+                    } else {
+
+                        $("#txtEmail, #txtPassword").val('');
+
+                        window.location.href = '/Product/RegisteredProducts';
+                    }
+                },
+                error: function (xhr) {
+                    $("#errorMsg").html(xhr.responseText);
+                    $("#divError").show();
+                }
+            });
+        });
+    });
+</script>
