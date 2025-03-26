@@ -48,6 +48,10 @@ MongoDB Compass will connect to the database and you will see the data in the gr
 
 Next to the database name, create the collections users, products, sales, saleItems.
 
+==========================================================================================================================
+
+The first time you use the system, sign in and login normally and update the UserProfile=1 field in mongoDB collection "users" and SQL server table "User". After that, you can set any user as an administrator by clicking on "Users List" in the main page and clicking update.
+
 
 
 
